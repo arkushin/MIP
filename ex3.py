@@ -17,8 +17,8 @@ GROWING_REPS = 150
 # Please provide either a full path or put the nii.gz files in the same directory as the ex3.py file for the functions
 # to read the files properly
 # During the run of this program several nii.gz files are being saved and loaded in a later step of the program, please
-# notice that all files most be saved in the same location as the ex3.py file
-# Moreover, there are several nii.gz files that can be saved by uncommenting the #UNCOMMENT# comments in the code, that
+# notice that all files must be saved in the same location as the ex3.py file
+# Moreover, there are several nii.gz files that can be saved by uncommenting the #UNCOMMENT# comments in the code, this
 # might be used in order to examine the performance of the code using ITK-Snap
 # main function can be activated in the end of this file to run the code
 
@@ -35,7 +35,6 @@ def segmentLiver(ctFileName, AortaFileName, outputFileName):
     orientation_flags = img_orientation(ctFileName)
     print(orientation_flags)
 
-
     ROI_segmentation = find_ROI(ctFileName, AortaFileName, orientation_flags)
     multipleSeedsRG(ctFileName, ROI_segmentation, orientation_flags)
 
@@ -46,13 +45,13 @@ def segmentLiver(ctFileName, AortaFileName, outputFileName):
 
     # perform morphological operation on the liver segmentation that was createdÖ
     for slc in range(ct_scan.shape[2]):
-        if ct_data[:,:,slc].any():
-            ct_data[:,:,slc] = morphology.remove_small_holes(ct_data[:,:,slc].astype(np.uint8))
-            ct_data[:,:,slc], connected_components_num = measure.label(ct_data[:,:,slc], return_num=True)
-            props = measure.regionprops(ct_data[:,:,slc].astype(np.uint16), coordinates='rc')
+        if ct_data[:, :, slc].any():
+            ct_data[:, :, slc] = morphology.remove_small_holes(ct_data[:, :, slc].astype(np.uint8))
+            ct_data[:, :, slc], connected_components_num = measure.label(ct_data[:, :, slc], return_num=True)
+            props = measure.regionprops(ct_data[:, :, slc].astype(np.uint16), coordinates='rc')
             area_list = [region.area for region in props]
-            ct_data[:,:,slc] = morphology.remove_small_objects(ct_data[:,:,slc].astype(np.uint8),
-                                                               min_size=max(area_list))
+            ct_data[:, :, slc] = morphology.remove_small_objects(ct_data[:, :, slc].astype(np.uint8),
+                                                                 min_size=max(area_list))
     ct_data[ct_data != 0] = 1
     for slc in range(ct_scan.shape[2]):
         if ct_data[:, :, slc].any():
@@ -107,9 +106,9 @@ def evaluateSegmentation(ground_truth_segmentation, estimated_segmentation):
     VOD = 1 - (intersection_volume / union_volume)
     dice_coefficient = (2 * intersection_volume) / (true_seg_volume + est_seg_volume)
 
-    # ASSD = calc_ASSD(ground_truth_segmentation, estimated_segmentation)
+    ASSD = calc_ASSD(ground_truth_segmentation, estimated_segmentation)
 
-    return VOD, dice_coefficient#, ASSD
+    return VOD, dice_coefficient, ASSD
 
 
 def multipleSeedsRG(ctFileName, ROI_segmentation, orientation_flags):
@@ -133,14 +132,14 @@ def multipleSeedsRG(ctFileName, ROI_segmentation, orientation_flags):
 
     # todo: COMMENT BEFORE SUBMISSION!
     ####################################################################################################################
-    # Following lines create a new nifti file called <file_name>_seeds_list.nii.gz, so the seeds that where selected can
-    # be seen using ITK-Snap. Uncomment these lines in order to create this file.
+    # Following lines create a new nifti file called '<file_name>_seeds_list.nii.gz', so the seeds that where selected
+    # can be seen using ITK-Snap. Uncomment these lines in order to create this file.
     ####################################################################################################################
     seeds_data[::] = 0
     for seed in seeds_list:
         seeds_data[seed[0], seed[1], seed[2]] = 1
     nib.save(seeds_seg, file_name + '_seeds_list.nii.gz')
-    print('seeds data saved') # todo: delete before submission!
+    print('seeds data saved')  # todo: delete before submission!
 
     # perform seeded region growing:
     cube = morphology.cube(3)
@@ -149,8 +148,8 @@ def multipleSeedsRG(ctFileName, ROI_segmentation, orientation_flags):
     last_region_num = np.sum(last_region)
     cur_region_num = np.sum(cur_region)
     i = 0
-    while last_region_num != cur_region_num:
     # for i in range(GROWING_REPS):
+    while last_region_num != cur_region_num:
         print(i)  # todo: delete!
         region_mean = np.mean(ct_data[last_region == 1])
         neighbors_flags = np.zeros(ct_data.shape)
@@ -208,11 +207,10 @@ def find_seeds(ctFileName, ROI_segmentation, orientation_flags):
         x = np.random.randint(lower_x, upper_x + 1)
         y = np.random.randint(right_y + 50, left_y + 1)
 
-        if LIVER_MIN_TH < ct_data[y, x, z] < LIVER_MAX_TH and ROI_data[y,x,z]:
+        if LIVER_MIN_TH < ct_data[y, x, z] < LIVER_MAX_TH and ROI_data[y, x, z]:
             seeds.append([y, x, z])
 
     print('end: find_seeds')
-
 
     return seeds
 
@@ -225,7 +223,6 @@ def find_ROI(ctFileName, AortaFileName, orientation_flags):
     """
     print('start: find_ROI')
     file_name = ctFileName.split('.')[0]
-
 
     ct_img = nib.load(ctFileName)
     ct_data = ct_img.get_data()
@@ -341,7 +338,7 @@ def remove_over_segmentation(ct_data, AortaFileName):
         upper_border += 1
     aorta_mid = int((upper_border + lower_border) / 2)
 
-    for slc in range(aorta_mid, ct_data.shape[2]-1):
+    for slc in range(aorta_mid, ct_data.shape[2] - 1):
         cur_slc = ct_data[:, :, slc]
         upper_slc = ct_data[:, :, slc + 1]
         intersection_flags = np.logical_and(cur_slc, upper_slc)
@@ -357,10 +354,9 @@ def remove_over_segmentation(ct_data, AortaFileName):
 
         # if there is no intersection between the two, remove the upper slice segmentation
         if not intersection_flags.any():
-            ct_data[:, :, slc-1] = 0
+            ct_data[:, :, slc - 1] = 0
 
     return ct_data
-
 
 
 def flip_axis(nii_data, orientation_flags):
@@ -391,16 +387,92 @@ def img_orientation(ctFileName):
     return orientation_flags
 
 
+def calc_ASSD(ground_truth_segmentation, estimated_segmentation):
+    # true_seg = ground_truth_segmentation
+    # est_seg = estimated_segmentation
+
+    liver_true_seg = nib.load(ground_truth_segmentation)
+    liver_true_data = liver_true_seg.get_data()
+    header = liver_true_seg.header
+
+
+    liver_est_seg = nib.load(estimated_segmentation)
+    liver_est_data = liver_est_seg.get_data()
+
+    # find the surface of the true segmentation:
+    derivation_matrix = np.array([[0, 0, 0], [1, 0, -1], [0, 0, 0]])
+    for slc in range(liver_true_seg.shape[2]):
+        if liver_true_data[:, :, slc].any():
+            dx = convolve2d(liver_true_data[:, :, slc], derivation_matrix, mode='same', boundary='wrap')
+            dy = convolve2d(liver_true_data[:, :, slc], derivation_matrix.T, mode='same', boundary='wrap')
+            liver_true_data[:, :, slc] = np.sqrt(
+                np.abs(dx) ** 2 + np.abs(dy) ** 2)  # calculates the magnitude of dx and dy
+            liver_true_data[:, :, slc], connected_components_num = measure.label(liver_true_data[:, :, slc],
+                                                                                 return_num=True)
+            props = measure.regionprops(liver_true_data[:, :, slc].astype(np.uint16), coordinates='rc')
+            area_list = [region.area for region in props]
+            liver_true_data[:, :, slc] = morphology.remove_small_objects(liver_true_data[:, :, slc].astype(np.uint8),
+                                                                         min_size=max(area_list))
+    # liver_true_data[liver_true_seg!=0]=1
+    nib.save(liver_true_seg, 'true_surface.nii.gz')
+
+    # find the surface of the estimated segmentation:
+    for slc in range(liver_true_seg.shape[2]):
+        if liver_est_data[:, :, slc].any():
+            dx = convolve2d(liver_est_data[:, :, slc], derivation_matrix, mode='same', boundary='wrap')
+            dy = convolve2d(liver_est_data[:, :, slc], derivation_matrix.T, mode='same', boundary='wrap')
+            liver_est_data[:, :, slc] = np.sqrt(
+                np.abs(dx) ** 2 + np.abs(dy) ** 2)  # calculates the magnitude of dx and dy
+            liver_est_data[:, :, slc], connected_components_num = measure.label(liver_est_data[:, :, slc],
+                                                                                return_num=True)
+            props = measure.regionprops(liver_est_data[:, :, slc].astype(np.uint16), coordinates='rc')
+            area_list = [region.area for region in props]
+            liver_est_data[:, :, slc] = morphology.remove_small_objects(liver_est_data[:, :, slc].astype(np.uint8),
+                                                                        min_size=max(area_list))
+
+    true_seg_surface = np.argwhere(liver_true_data)
+    est_seg_surface = np.argwhere(liver_est_data)
+
+    # est_seg_surface = np.argwhere(liver_true_data)
+
+    pixdim = header['pixdim']
+
+    ASSD = 0
+    # j = 0
+    print('starting first')
+    for a_point in true_seg_surface:
+        # if not j%1000:
+        #     print(j)
+        #     print(ASSD)
+        # j += 1
+        ASSD += min_dist(a_point, est_seg_surface, pixdim) / true_seg_surface.shape[0]
+
+    print('starting second')
+    for b_point in est_seg_surface:
+        ASSD += min_dist(b_point, true_seg_surface, pixdim) / est_seg_surface.shape[0]
+
+    return ASSD / 2
+
+
+def min_dist(point, surface, pixdim):
+    """
+    A function that computes the minimal distance of the given point from the given surface
+    """
+    point_array = np.full(surface.shape, point)
+    dist_array = np.linalg.norm(point_array-surface, axis=1)
+    return np.amin(dist_array)
+
+
 
 ##############################################################################
 # uncomment 'main' and fill case number instead '#' for running the program  #
 ##############################################################################
 if __name__ == '__main__':
-    ctFileName = 'Case1_CT.nii.gz'
-    AortaFileName = 'Case1_Aorta.nii.gz'
-    segmentLiver(ctFileName, AortaFileName, 'Case1_my_segmentation')
+    # ctFileName = 'HardCase1_CT.nii.gz'
+    # AortaFileName = 'HardCase1_Aorta.nii.gz'
+    # segmentLiver(ctFileName, AortaFileName, 'HardCase1_my_segmentation')
 
+    print('Case1')
     ground_truth_segmentation = 'Case1_liver_segmentation.nii.gz'
     estimated_liver_segmentation = 'Case1_my_segmentation.nii.gz'
     print(evaluateSegmentation(ground_truth_segmentation, estimated_liver_segmentation))
-
